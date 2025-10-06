@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-jq -r '. | "\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json | \
-awk '{name=$1; type=$2; weight=$3/10; height=$4/10; \
-printf "%s is of type %s, weighs %.0fkg, and is %.1fm tall.\n", name, type, weight, height}' | \
-sed 's/\b\(.\)/\u\1/; s/\b\(.\)\(.*type \)\(.\)/\1\2\u\3/'
+read -r raw_name raw_type raw_weight raw_height < <(jq -r '. | "\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json)
+formatted_weight=$(awk -v w="$raw_weight" 'BEGIN{printf "%.0f", w/10}'); formatted_height=$(awk -v h="$raw_height" 'BEGIN{printf "%.1f", h/10}'); name=$(printf "%s" "$raw_name" | sed 's/.*/\u&/'); type=$(printf "%s" "$raw_type" | sed 's/.*/\u&/'); echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
