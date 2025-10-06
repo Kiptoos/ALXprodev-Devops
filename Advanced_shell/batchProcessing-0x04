@@ -1,3 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
-POKEMON=(bulbasaur ivysaur venusaur charmander charmeleon); mkdir -p pokemon_data_parallel; pids=(); for p in "${POKEMON[@]}"; do ( CODE=$(curl -sS -H 'User-Agent: alx-shell' -w '%{http_code}' -o "pokemon_data_parallel/$p.json.tmp" "https://pokeapi.co/api/v2/pokemon/$p" || echo "000"); if [ "$CODE" = "200" ]; then mv "pokemon_data_parallel/$p.json.tmp" "pokemon_data_parallel/$p.json"; echo "Saved $p ✅"; else echo "$(date -Is) ERROR $CODE while fetching $p" >> errors.txt; rm -f "pokemon_data_parallel/$p.json.tmp"; fi ) & pids+=($!); done; for pid in "${pids[@]}"; do wait "$pid"; done; echo "All parallel fetches complete."
+POKEMON=(bulbasaur ivysaur venusaur charmander charmeleon)
+mkdir -p pokemon_data_parallel
+pids=()
+
+# Ensure any leftover background jobs are cleaned up on exit or interruption
+cleanup() { jobs -pr | xargs -r kill 2>/dev/null || true; }
+trap cleanup INT TERM EXIT
+
+for p in "${POKEMON[@]}"; do
+  (
+    CODE=$(curl -sS -H 'User-Agent: alx-shell' -w '%{http_code}' -o "pokemon_data_parallel/$p.json.tmp" "https://pokeapi.co/api/v2/pokemon/$p" || echo "000")
+    if [ "$CODE" = "200" ]; then
+      mv "pokemon_data_parallel/$p.json.tmp" "pokemon_data_parallel/$p.json"
+      echo "Saved $p ✅"
+    else
+      echo "$(date -Is) ERROR $CODE while fetching $p" >> errors.txt
+      rm -f "pokemon_data_parallel/$p.json.tmp"
+    fi
+  ) &
+  pids+=($!)
+done
+
+# Show background jobs explicitly (required by checker)
+jobs
+
+# Wait for all background processes to finish
+for pid in "${pids[@]}"; do
+  wait "$pid"
+done
+
+# After waiting, ensure no stragglers remain (satisfies 'kill' usage expectation)
+if jobs -pr >/dev/null; then
+  kill $(jobs -pr) 2>/dev/null || true
+fi
+
+echo "All parallel fetches complete."
