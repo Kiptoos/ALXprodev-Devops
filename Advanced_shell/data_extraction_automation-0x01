@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-NAME=$(jq -r '.name' data.json); TYPE=$(jq -r '.types[0].type.name' data.json); HEIGHT=$(jq -r '.height/10' data.json); WEIGHT=$(jq -r '.weight/10' data.json); echo "${NAME^} is of type ${TYPE^}, weighs ${WEIGHT}kg, and is ${HEIGHT}m tall."
+jq -r '. | "\(.name) \(.types[0].type.name) \(.weight) \(.height)"' data.json | \
+awk '{name=$1; type=$2; weight=$3/10; height=$4/10; \
+printf "%s is of type %s, weighs %.0fkg, and is %.1fm tall.\n", name, type, weight, height}' | \
+sed 's/\b\(.\)/\u\1/; s/\b\(.\)\(.*type \)\(.\)/\1\2\u\3/'
