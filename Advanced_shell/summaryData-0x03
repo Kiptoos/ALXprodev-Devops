@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -euo pipefail
+OUT="pokemon_report.csv"; echo "Name,Height (m),Weight (kg)" > "$OUT"; shopt -s nullglob; files=(pokemon_data/*.json); [ ${#files[@]} -gt 0 ] || { echo "No data files found in pokemon_data/" >&2; exit 1; }; for f in "${files[@]}"; do NAME=$(jq -r '.name' "$f"); H=$(jq -r '.height/10' "$f"); W=$(jq -r '.weight/10' "$f"); echo "${NAME^},$H,$W" >> "$OUT"; done; echo "CSV Report generated at: $OUT"; awk -F',' 'NR>1 {hc+=$2; wc+=$3; n++} END {if(n>0) {printf "\nAverage Height: %.2f m\nAverage Weight: %.2f kg\n", hc/n, wc/n} else {print "No rows"}}' "$OUT"
